@@ -1,9 +1,21 @@
+/** 
+This game is made by 
 
+Name - Aakash Shankar Prasad
+Roll Number - 2201CS01
+Course Number - CS210
+Course Name - Architecture Lab
+Course Instructor - Dr. Jimson Mathew 
+
+
+**/
 
 #define SW_BASE               0xFF200040
 #define KEY_BASE              0xFF200050
 volatile int * KEY_ptr =(volatile int *) KEY_BASE;  
 volatile int * SW_ptr  =(volatile int *) SW_BASE;
+
+
 //Colours
 #define BLACK 0x0000 		
 #define GREEN 0x07E0 	
@@ -13,7 +25,7 @@ volatile int * SW_ptr  =(volatile int *) SW_BASE;
 #define NAVY 0x000F 
 
 
-// Coordinates of the GreenBox
+// Coordinates of the boxes of the TicTacToe Board 
 int row[3]={8,68,128};
 int col[3]={8,68,128};
   // makeThePointerSquare 
@@ -22,17 +34,22 @@ int col[3]={8,68,128};
 
 // Game Matrix 
 int gameMatrix[3][3];
-// making a Data structure ! 
+// making a Data structure to store the values 
 
 void write_pixel(int x,int y,short colour);
 void clear_screen();
 void write_char(int x,int y,char ch);
 void clear_char();
 void makeBoard();
+void printRound();
 void draw_line(int x1,int y1,int x2,int y2);
+void drawThickLine(int x0, int y0, int x1, int y1, int thickness, short color) ;
+void makeSquare(int X ,int Y ,int leng ,short colour);
 void draw_circle(int centerX,int centerY,int radius);
 void makeGreenSquare(int x,int y,int leng);
 void makeWhiteSquare(int x,int y,int leng);
+void makeRedSquare(int x,int y,int leng);
+void blinkRedSquare();
 void updateGreenSquare(int currX,int currY,int nextX,int nextY);
 int makeaTurn();
 void makeaShift(int r,int c,int val);
@@ -40,45 +57,68 @@ void mySleep();
 void printX(int x,int y); // x=col , y=row  --> for printing X
 void printO(int x,int y); // x=col , y=row  --> for printing Y
 void updateBoard(); // for updating the values of the matrix 
+int callPlayer(int player);
+void callPlayerTillWrite(int player);
+int winCheck(int val);
+void printR();
+void printRoundO();
+void printU();
+
 
 int prevRow=0,prevCol=0;
 
 int main(){
   clear_screen();
   makeBoard();
+  printRound();
 
   prevRow=0,prevCol=0;
 
-  callFirstPlayer();
-  callSecondPlayer();
+
+  int check=0;
+  for(int i=1;i<=9;i++){
+    int par=((i&1) == 1)?1:0;
+    callPlayerTillWrite(par);
+    check=winCheck(par);
+    if(check == 1) break;
+  }
+
   return 0;
 }
 
 // -------------------------------------------------------------------------------------------------------------------------------------------
 // Function for gameplay Mechanics 
 
+
+// ---------------------------------------------------------------------------------------------------------------------------------------
 // Functions for calling players 
 
-// Player X
-void callFirstPlayer(){
-  int first=makeaTurn();
-  while(first !=1){
-    first=makeaTurn();
+// calling a player till it writes 
+void callPlayerTillWrite(int player){
+  int val=callPlayer(player);
+  while(val == 0){
+    blinkRedSquare();
+    val=callPlayer(player);
   }
-  gameMatrix[prevRow][prevCol]=1;
-  updateBoard();
 }
 
-// Player Y 
-void callSecondPlayer(){
-  int second=makeaTurn();
-  while(second!=1){
-    second=makeaTurn();
+// calling a player , 1 for X , 2 for O
+int callPlayer(int player){
+  int val=makeaTurn();
+  while(val!=1){
+    val=makeaTurn();
   }
-  gameMatrix[prevRow][prevCol]=0;
+  int previousVal=gameMatrix[prevRow][prevCol];
+  if(previousVal!=-1) return 0;
+  gameMatrix[prevRow][prevCol]=(player == 1)?1:0;
   updateBoard();
+  return 1;
 }
+// ------------------------------------------------------------------------------------------------------------
 
+// ------------------------------------------------------------------------------------------------------------------------------
+
+// Functions for shifting squares 
 // Shifting the green square  
 void makeaShift(int r,int c,int val){
   int rFinal=r,cFinal=c;
@@ -104,10 +144,6 @@ int makeaTurn(){
       return 0;
     }
   }
-
-  int moveDirection = *SW_ptr;
-  if(moveDirection == 3) return 1;
-  makeaShift(prevRow,prevCol,moveDirection);
   return 0;
 }
 
@@ -116,6 +152,85 @@ void updateGreenSquare(int currX,int currY,int nextX,int nextY){
   makeWhiteSquare(currX,currY,50);
   makeGreenSquare(nextX,nextY,50);
   updateBoard();
+}
+
+// For showing a wrong attempt ! 
+void blinkRedSquare(){
+  makeRedSquare(col[prevCol],row[prevRow],50);
+  updateBoard();
+}
+
+// --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// win condition check
+int winCheck(int val){
+  // all Rows
+  for(int myRow=0;myRow<3;myRow++){
+    int won=1;
+    for(int myCol=0;myCol<3;myCol++){
+      if(gameMatrix[myRow][myCol] == val) continue;
+      else won=0;
+    }
+
+    if(won == 1){
+      makeWhiteSquare(col[prevCol],row[prevRow],50);
+      for(int myCol=0;myCol<3;myCol++){
+        makeGreenSquare(col[myCol],row[myRow],50);
+      }
+      updateBoard();
+      return 1;
+    }
+  }
+
+  // for all Columns
+  for(int myCol=0;myCol<3;myCol++){
+    int won=1;
+    for(int myRow=0;myRow<3;myRow++){
+      if(gameMatrix[myRow][myCol] == val) continue;
+      else won=0;
+    }
+    if(won == 1){
+      makeWhiteSquare(col[prevCol],row[prevRow],50);
+      for(int myRow=0;myRow<3;myRow++){
+        makeGreenSquare(col[myCol],row[myRow],50);
+      }
+      updateBoard();
+      return 1;
+    }
+  }
+
+  // left top - right bottom diagonal 
+  int diagWin=1;
+  for(int i=0;i<3;i++){
+    if(gameMatrix[i][i] == val) continue;
+    else diagWin=0;
+  }
+  if(diagWin == 1){
+    makeWhiteSquare(col[prevCol],row[prevRow],50);
+    for(int i=0;i<3;i++){
+      makeGreenSquare(col[i],row[i],50);
+    }
+    updateBoard();
+    return 1;
+  }
+
+
+  // right top - left bottom diagonal 
+  int diagWinOther=1;
+  for(int i=0;i<3;i++){
+    if(gameMatrix[i][2-i] == val) continue;
+    else diagWinOther=0;
+  }
+  if(diagWinOther == 1){
+    makeWhiteSquare(col[prevCol],row[prevRow],50);
+    for(int i=0;i<3;i++){
+      makeGreenSquare(col[i],row[2-i],50);
+    }
+    updateBoard();
+    return 1;
+  }
+
+  return 0;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -162,20 +277,24 @@ void updateBoard(){
 
 
 // Static codes for white and green squares 
-void makeGreenSquare(int X,int Y,int leng){
+
+void makeSquare(int X ,int Y ,int leng ,short colour){
   for(int x=X;x<X+leng;x++){
     for(int y=Y;y<Y+leng;y++){
-      write_pixel(x,y,GREEN);
+      write_pixel(x,y,colour);
     }
   }
 }
+void makeGreenSquare(int X,int Y,int leng){
+  makeSquare(X,Y,50,GREEN);
+}
 
 void makeWhiteSquare(int X,int Y,int leng){
-  for(int x=X;x<X+leng;x++){
-    for(int y=Y;y<Y+leng;y++){
-      write_pixel(x,y,WHITE);
-    }
-  }
+  makeSquare(X,Y,50,WHITE);
+}
+
+void makeRedSquare(int X,int Y,int leng){
+  makeSquare(X,Y,50,RED);
 }
 
 // Printing X and O 
@@ -194,6 +313,42 @@ void printX(int x,int y){
 
 void printO(int x,int y){
   draw_circle(x+25,y+25,25);
+}
+
+// Print Round
+
+void printRound(){
+  for(int y=190;y<240;y++){
+    for(int x=0;x<320;x++){
+      write_pixel(x,y,LGRAY);
+    }
+  }
+  // print R
+  printR();
+  printRoundO();
+  printU();
+}
+
+// Print R
+void printR(){
+  drawThickLine(5,200,5,230,5,NAVY);
+  drawThickLine(5,200,20,200,5,NAVY);
+  drawThickLine(5,215,20,215,5,NAVY);
+  drawThickLine(5,215,25,230,5,NAVY);
+  drawThickLine(20,200,20,215,5,NAVY);
+}
+
+void printRoundO(){
+  drawThickLine(35,200,35,230,5,NAVY);  // |
+  drawThickLine(35,200,50,200,5,NAVY);  // -
+  drawThickLine(50,200,50,230,5,NAVY);  // |  
+  drawThickLine(35,230,50,230,5,NAVY);  // _
+}
+
+void printU(){
+  drawThickLine(65,200,65,230,5,NAVY);
+  drawThickLine(65,230,80,230,5,NAVY);
+  drawThickLine(80,200,80,230,5,NAVY);
 }
 
 // ----------------------------------------------------------------------------------------------------------------------
@@ -249,7 +404,7 @@ void draw_line(int x1, int y1, int x2, int y2) {
     int err = dx - dy;
 
     while (x1 != x2 || y1 != y2) {
-        write_pixel(x1, y1,0);
+        write_pixel(x1, y1,NAVY);
         int e2 = 2 * err;
         if (e2 > -dy) {
             err -= dy;
@@ -288,4 +443,21 @@ void draw_circle(int centerX, int centerY, int radius) {
         }
     }
     return;
+}
+
+// Function to draw a thick line using Bresenham's algorithm
+// Function to draw a thick line using Bresenham's algorithm
+void drawThickLine(int x0, int y0, int x1, int y1, int thickness, short color) {
+    int dx = abs(x1 - x0);
+    int dy = abs(y1 - y0);
+
+    if (dx > dy) {
+        for (int i = -thickness / 2; i < thickness / 2; i++) {
+            draw_line(x0, y0 + i, x1, y1 + i);
+        }
+    } else {
+        for (int i = -thickness / 2; i < thickness / 2; i++) {
+            draw_line(x0 + i, y0, x1 + i, y1);
+        }
+    }
 }
