@@ -24,18 +24,6 @@ volatile int * SW_ptr  =(volatile int *) SW_BASE;
 #define LGRAY 0xC618 	
 #define NAVY 0x000F 
 
-
-// Coordinates of the boxes of the TicTacToe Board 
-int row[3]={8,68,128};
-int col[3]={8,68,128};
-  // makeThePointerSquare 
-  // box1 == 8,8 | box2 == 68,8 | box3 == 128,8 |  box4 == 8,68 | box5 == 68,68 | box6 == 128,68
-  // box7 == 8,128 | box8 == 68,128 | box9 == 128,128 
-
-// Game Matrix 
-int gameMatrix[3][3];
-// making a Data structure to store the values 
-
 // Basic write functions ! 
 void write_pixel(int x,int y,short colour);
 void clear_screen();
@@ -85,21 +73,52 @@ void movementRulesBox();
 void print01fn();
 void print10fn();
 void print11fn();
+void printMode(int player);
+int betPage(int player);
+
 
 // Backend of the game play mechanics  ....
 int callPlayer(int player);   // calls the player till it choses the box to write  
 void callPlayerTillWrite(int player);     // calls the player till it writes (accomodation for writing on already written boxes )
 int winCheck(int val);
-void oneRoundTicTacToe(int round);
+int oneRoundTicTacToe(int round);
 void waitForKeyPress();
 int abs(int x);
 void convertToStringAndPrint(int score,int x,int y);
+void updateButton(int prev,int next);
+int getMode();
+void updateScore(int betOne,int betTwo,int winner);
 
 
+// A few Global variables used ! -------------------------------------------------------------------------------------------------------------
 int prevRow=0,prevCol=0;
+int buttonX[]={50,123,207}; // buttonY == 110  and length=30
+int currButtonX=0;
+int scoreA=0;
+int scoreB=0;
+// Coordinates of the boxes of the TicTacToe Board 
+int row[3]={8,68,128};
+int col[3]={8,68,128};
+  // makeThePointerSquare 
+  // box1 == 8,8 | box2 == 68,8 | box3 == 128,8 |  box4 == 8,68 | box5 == 68,68 | box6 == 128,68
+  // box7 == 8,128 | box8 == 68,128 | box9 == 128,128 
 
+// Game Matrix 
+int gameMatrix[3][3];
+// making a Data structure to store the values 
+int winnerPlus[]={1,3,5};
+int LossMinus[]={1,2,3};
+int drawMinus[]={0,-1,-2};
+
+// --------------------------------------------------------------------------------------------------------------------------------------------
+
+// ------------------------------------------------MAIN FUNCTION ---------------------------------------------------------------------------
 int main(){
   clear_screen();
+  clear_char();
+
+  scoreA=0;
+  scoreB=0;
 
   welcomePage();
   waitForKeyPress();
@@ -107,25 +126,47 @@ int main(){
   waitForKeyPress();
   
   for(int i=1;i<=3;i++){
-    scoresPage(0,0);
+    scoresPage(scoreA,scoreB);
     waitForKeyPress();
-    oneRoundTicTacToe(i);
+    int val1=betPage(1);
+    int val2=betPage(2);
+    int winner = oneRoundTicTacToe(i);
+    updateScore(val1,val2,winner);
     waitForKeyPress();
   }
+  scoresPage(scoreA,scoreB);
 
   return 0;
 }
+// -------------------------------------------------------------------MAIN FUNCTION OVER--------------------------------------------
+ 
+void updateScore(int betOne,int betTwo,int winner){
+    if(winner == 1){
+      scoreA+=winnerPlus[betOne];
+      scoreB-=LossMinus[betTwo];
+    }
+    else if (winner == 0){
+      scoreA-=LossMinus[betOne];
+      scoreB+=winnerPlus[betTwo];
+    }
+    else{
+      scoreA-=drawMinus[betOne];
+      scoreB-=drawMinus[betTwo];
+    }
+}
+
+
 
 // waiting for Key Press 
 void waitForKeyPress(){
   int val=*KEY_ptr;
-  if(val == 1){
-    while(val == 1){
+  if(val != 0){
+    while(val != 0){
       val=*KEY_ptr;
     }
   }
 
-  while(val == 0){
+  while(val != 1){
     val=*KEY_ptr;
   }
   return;
@@ -137,18 +178,20 @@ void waitForKeyPress(){
 // Function for gameplay Mechanics 
 
 // main game
-void oneRoundTicTacToe(int round){
+int oneRoundTicTacToe(int round){
   prevRow=0,prevCol=0;
   makeBoard();
   printRound(round);
   int check=0;
-  for(int i=1;i<=9;i++){
+  int i;
+  for(i=1;i<=9;i++){
     int par=((i&1) == 1)?1:0;
     callPlayerTillWrite(par);
     check=winCheck(par);
-    if(check == 1) return;
+    if(check == 1) return par;
   }
 
+  return -1;
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------------
@@ -249,6 +292,32 @@ void blinkRedSquare(){
   makeRedSquare(col[prevCol],row[prevRow],50);
   updateBoard();
 }
+
+
+// Function for button and movements for Bet Page
+
+int getMode(){
+  currButtonX=0;
+  makeSquare(buttonX[currButtonX],110,30,GREEN);
+  waitForKeyPress();
+  int chosen=*SW_ptr;
+  if(chosen == 1) return currButtonX;
+  else {
+    while(chosen!=1){
+      updateButton(currButtonX,((currButtonX+1)%3));
+      currButtonX=(currButtonX+1)%3;
+      waitForKeyPress();
+      chosen=*SW_ptr;
+    }
+    return currButtonX;
+  }
+}
+
+void updateButton(int prev,int next){
+  makeSquare(buttonX[prev],110,30,LGRAY);
+  makeSquare(buttonX[next],110,30,GREEN);
+}
+
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -912,8 +981,118 @@ void print11fn(){
   drawThickLine(260,130,300,90,5,NAVY);
 }
 
+int betPage(int player){
+  clear_screen();
+  clear_char();
+
+  for(int x=40;x<=240;x++){
+    for(int y=15;y<=90;y++){
+      write_pixel(x,y,LGRAY);
+    }
+  }
+
+  printMode(player);
+
+
+  char *bet="BET";
+  char *normal="NORMAL";
+  char *blind="BLIND"; 
+  char *inst="Keep switch == 1 when selecting , else 0"; 
+  char *inst2="Push button to move the cursor";
+
+  int y=30;
+  int x=13;
+  
+  char *ptr=normal;
+  while(*ptr !='\0'){
+    write_char(x,y,*ptr);
+    ptr++;
+    x++;
+  }
+
+  x=33;
+  ptr=bet;
+  while(*ptr !='\0'){
+    write_char(x,y,*ptr);
+    ptr++;
+    x++;
+  }
+
+  x=53;
+  ptr=blind;
+  while(*ptr!='\0'){
+    write_char(x,y,*ptr);
+    ptr++;
+    x++;
+  }
+
+  x=15;
+  ptr=inst2;
+  while(*ptr!='\0'){
+    write_char(x,40,*ptr);
+    ptr++;
+    x++;
+  }
+
+  x=15;
+  ptr=inst;
+  while(*ptr!='\0'){
+    write_char(x,45,*ptr);
+    ptr++;
+    x++;
+  }
+
+
+
+  makeSquare(50,110,30,LGRAY);
+  makeSquare(123,110,30,LGRAY);
+  makeSquare(207,110,30,LGRAY);
+
+  int chosenWhichOne=getMode();
+  return chosenWhichOne;
+  
+}
+
 int abs(int x){
   if(x>=0) return x;
   x-=(2*x);
   return x;
+}
+
+
+void printMode(int player){
+  // print MODE
+
+  // print M
+  drawThickLine(45,20,45,80,4,NAVY);  // |   
+  drawThickLine(45,20,53,50,4,NAVY);
+  drawThickLine(53,50,61,20,4,NAVY);
+  drawThickLine(61,20,61,80,4,NAVY);
+
+  // print O 
+  drawThickLine(75,20,90,20,4,NAVY);
+  drawThickLine(75,20,75,80,4,NAVY);
+  drawThickLine(75,80,90,80,4,NAVY);
+  drawThickLine(90,80,90,20,4,NAVY);
+
+  //print D
+  drawThickLine(105,20,120,50,4,NAVY);
+  drawThickLine(105,20,105,80,4,NAVY);
+  drawThickLine(105,80,120,50,4,NAVY);
+
+  // print E
+  drawThickLine(135,20,135,80,4,NAVY);
+  drawThickLine(135,20,160,20,4,NAVY);
+  drawThickLine(135,50,150,50,4,NAVY);
+  drawThickLine(135,80,160,80,4,NAVY);
+
+  // player number ! 
+
+  if(player == 1){
+    drawThickLine(180,20,180,80,4,NAVY);
+  }
+  else{
+    drawThickLine(180,20,180,80,4,NAVY);
+    drawThickLine(189,20,189,80,4,NAVY);
+  }
 }
