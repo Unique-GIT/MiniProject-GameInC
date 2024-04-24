@@ -36,12 +36,14 @@ int col[3]={8,68,128};
 int gameMatrix[3][3];
 // making a Data structure to store the values 
 
+// Basic write functions ! 
 void write_pixel(int x,int y,short colour);
 void clear_screen();
 void write_char(int x,int y,char ch);
 void clear_char();
-void makeBoard();
-void printRound();
+
+// ------------------------------------------------------------------------------------------------------------------------------------------------------
+// Some functions to draw basic shapes ! 
 void draw_line(int x1,int y1,int x2,int y2);
 void drawThickLine(int x0, int y0, int x1, int y1, int thickness, short color) ;
 void makeSquare(int X ,int Y ,int leng ,short colour);
@@ -49,45 +51,133 @@ void draw_circle(int centerX,int centerY,int radius);
 void makeGreenSquare(int x,int y,int leng);
 void makeWhiteSquare(int x,int y,int leng);
 void makeRedSquare(int x,int y,int leng);
-void blinkRedSquare();
-void updateGreenSquare(int currX,int currY,int nextX,int nextY);
-int makeaTurn();
-void makeaShift(int r,int c,int val);
-void mySleep();
-void printX(int x,int y); // x=col , y=row  --> for printing X
-void printO(int x,int y); // x=col , y=row  --> for printing Y
-void updateBoard(); // for updating the values of the matrix 
-int callPlayer(int player);
-void callPlayerTillWrite(int player);
-int winCheck(int val);
+void blinkRedSquare(); 
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+// functions for displaying things on different pages 
+void makeBoard();
+void printRoundForDisplay();   // prints only ROUND
+void printRound(int round);   // prints the entire box with ROUND and round number !
+// letters of Round and number ! 
 void printR();
 void printRoundO();
 void printU();
+void printN();
+void printD();
+void printOne();
+void printTwo();
+void printThree();
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+// Functions for game play mechanics 
+
+// The following are display mechanics ...
+void updateGreenSquare(int currX,int currY,int nextX,int nextY);   // shifting the green square
+int makeaTurn();   // make a shift of the square ..... redrawing the square
+void makeaShift(int r,int c,int val);  // finalizing the co-ordinates for the green square 
+void printX(int x,int y); // x=col , y=row  --> for printing X
+void printO(int x,int y); // x=col , y=row  --> for printing Y
+void updateBoard(); // for drawing X and O with the updated matrix 
+void welcomePage();
+void rulesPage();
+void scoresPage(int scoreOne,int scoreTwo);
+void movementRulesBox();
+void print01fn();
+void print10fn();
+void print11fn();
+
+// Backend of the game play mechanics  ....
+int callPlayer(int player);   // calls the player till it choses the box to write  
+void callPlayerTillWrite(int player);     // calls the player till it writes (accomodation for writing on already written boxes )
+int winCheck(int val);
+void oneRoundTicTacToe(int round);
+void waitForKeyPress();
+int abs(int x);
+void convertToStringAndPrint(int score,int x,int y);
 
 
 int prevRow=0,prevCol=0;
 
 int main(){
   clear_screen();
-  makeBoard();
-  printRound();
 
-  prevRow=0,prevCol=0;
-
-
-  int check=0;
-  for(int i=1;i<=9;i++){
-    int par=((i&1) == 1)?1:0;
-    callPlayerTillWrite(par);
-    check=winCheck(par);
-    if(check == 1) break;
+  welcomePage();
+  waitForKeyPress();
+  rulesPage();
+  waitForKeyPress();
+  
+  for(int i=1;i<=3;i++){
+    scoresPage(0,0);
+    waitForKeyPress();
+    oneRoundTicTacToe(i);
+    waitForKeyPress();
   }
 
   return 0;
 }
 
+// waiting for Key Press 
+void waitForKeyPress(){
+  int val=*KEY_ptr;
+  if(val == 1){
+    while(val == 1){
+      val=*KEY_ptr;
+    }
+  }
+
+  while(val == 0){
+    val=*KEY_ptr;
+  }
+  return;
+}
+
+
+
 // -------------------------------------------------------------------------------------------------------------------------------------------
 // Function for gameplay Mechanics 
+
+// main game
+void oneRoundTicTacToe(int round){
+  prevRow=0,prevCol=0;
+  makeBoard();
+  printRound(round);
+  int check=0;
+  for(int i=1;i<=9;i++){
+    int par=((i&1) == 1)?1:0;
+    callPlayerTillWrite(par);
+    check=winCheck(par);
+    if(check == 1) return;
+  }
+
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------------
+// function for printing scores
+
+void convertToStringAndPrint(int score,int x,int y){
+  char sign;
+  if(score>=0) sign='+';
+  else sign='-';
+
+  score=abs(score);
+  char ones,tens;
+  ones=(char)('0'+(score%10));
+  score=score/10;
+  tens=(char)('0'+(score%10));
+  
+
+  char ans[]={sign,tens,ones,'\0'};
+
+  int startX=x;
+  int startY=y;
+
+  char * ptr=ans;
+  while(*ptr != '\0'){
+    write_char(startX,startY,*ptr);
+    ptr++;
+    startX++;
+  }
+}
 
 
 // ---------------------------------------------------------------------------------------------------------------------------------------
@@ -239,7 +329,7 @@ int winCheck(int val){
 void makeBoard(){
   clear_screen();
   clear_char();
-
+  movementRulesBox();
   // Initialise the matrix 
   for(int i=0;i<3;i++){
     for(int j=0;j<3;j++){
@@ -277,7 +367,6 @@ void updateBoard(){
 
 
 // Static codes for white and green squares 
-
 void makeSquare(int X ,int Y ,int leng ,short colour){
   for(int x=X;x<X+leng;x++){
     for(int y=Y;y<Y+leng;y++){
@@ -317,39 +406,19 @@ void printO(int x,int y){
 
 // Print Round
 
-void printRound(){
+void printRound(int round){
   for(int y=190;y<240;y++){
     for(int x=0;x<320;x++){
       write_pixel(x,y,LGRAY);
     }
   }
-  // print R
-  printR();
-  printRoundO();
-  printU();
+  // print Round
+  printRoundForDisplay();
+  if(round == 1) printOne();
+  else if(round == 2) printTwo();
+  else printThree();
 }
 
-// Print R
-void printR(){
-  drawThickLine(5,200,5,230,5,NAVY);
-  drawThickLine(5,200,20,200,5,NAVY);
-  drawThickLine(5,215,20,215,5,NAVY);
-  drawThickLine(5,215,25,230,5,NAVY);
-  drawThickLine(20,200,20,215,5,NAVY);
-}
-
-void printRoundO(){
-  drawThickLine(35,200,35,230,5,NAVY);  // |
-  drawThickLine(35,200,50,200,5,NAVY);  // -
-  drawThickLine(50,200,50,230,5,NAVY);  // |  
-  drawThickLine(35,230,50,230,5,NAVY);  // _
-}
-
-void printU(){
-  drawThickLine(65,200,65,230,5,NAVY);
-  drawThickLine(65,230,80,230,5,NAVY);
-  drawThickLine(80,200,80,230,5,NAVY);
-}
 
 // ----------------------------------------------------------------------------------------------------------------------
 
@@ -397,8 +466,8 @@ void clear_char(){
 
 
 void draw_line(int x1, int y1, int x2, int y2) {
-    int dx = abs(x2 - x1);
-    int dy = abs(y2 - y1);
+    int dx = abs((x2 - x1));
+    int dy = abs((y2 - y1));
     int sx = (x1 < x2) ? 1 : -1;
     int sy = (y1 < y2) ? 1 : -1;
     int err = dx - dy;
@@ -460,4 +529,391 @@ void drawThickLine(int x0, int y0, int x1, int y1, int thickness, short color) {
             draw_line(x0 + i, y0, x1 + i, y1);
         }
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+// A bunch of functions to print letters !
+
+// print Round 
+void printRoundForDisplay(){
+  printR();
+  printRoundO();
+  printU();
+  printN();
+  printD();
+}
+// Print R
+void printR(){
+  drawThickLine(20,200,20,230,5,NAVY);
+  drawThickLine(20,200,35,200,5,NAVY);
+  drawThickLine(20,215,35,215,5,NAVY);
+  drawThickLine(20,215,40,230,5,NAVY);
+  drawThickLine(35,200,35,215,5,NAVY);
+}
+
+void printRoundO(){
+  drawThickLine(50,200,50,230,5,NAVY);  // |
+  drawThickLine(50,200,65,200,5,NAVY);  // -
+  drawThickLine(65,200,65,230,5,NAVY);  // |  
+  drawThickLine(50,230,65,230,5,NAVY);  // _
+}
+
+void printU(){
+  drawThickLine(80,200,80,230,5,NAVY);
+  drawThickLine(80,230,95,230,5,NAVY);
+  drawThickLine(95,200,95,230,5,NAVY);
+}
+
+void printN(){
+  drawThickLine(105,200,105,230,5,NAVY);
+  drawThickLine(105,200,125,230,5,NAVY);
+  drawThickLine(125,200,125,230,5,NAVY);
+}
+
+void printD(){
+  drawThickLine(140,200,140,230,5,NAVY);  // |
+  drawThickLine(140,200,160,210,5,NAVY);  // -
+  drawThickLine(160,210,160,220,5,NAVY);  // |  
+  drawThickLine(140,230,160,220,5,NAVY);  // _
+}
+
+void printOne(){
+  drawThickLine(195,200,195,230,5,NAVY);
+}
+void printTwo(){
+  drawThickLine(195,200,195,230,5,NAVY);
+  drawThickLine(205,200,205,230,5,NAVY);
+}
+void printThree(){
+  drawThickLine(195,200,195,230,5,NAVY);
+  drawThickLine(205,200,205,230,5,NAVY);
+  drawThickLine(215,200,215,230,5,NAVY);
+}
+
+
+void printRoll(){
+  // print 2 
+  drawThickLine(20,200,35,200,5,NAVY);
+  drawThickLine(35,200,35,215,5,NAVY);
+  drawThickLine(20,215,35,215,5,NAVY);
+  drawThickLine(20,215,20,230,5,NAVY);
+  drawThickLine(20,230,35,230,5,NAVY);
+
+
+  // print 2 
+  drawThickLine(45,200,60,200,5,NAVY);
+  drawThickLine(60,200,60,215,5,NAVY);
+  drawThickLine(45,215,60,215,5,NAVY);
+  drawThickLine(45,215,45,230,5,NAVY);
+  drawThickLine(45,230,60,230,5,NAVY);
+
+  // print 0
+  drawThickLine(70,200,70,230,5,NAVY);
+  drawThickLine(70,200,85,200,5,NAVY);
+  drawThickLine(70,230,85,230,5,NAVY);
+  drawThickLine(85,200,85,230,5,NAVY);
+
+  // print !
+  drawThickLine(100,200,100,230,5,NAVY);
+
+  // print C
+  drawThickLine(115,200,130,200,5,NAVY);
+  drawThickLine(115,200,115,230,5,NAVY);
+  drawThickLine(115,230,130,230,5,NAVY);
+
+  // print S
+  drawThickLine(145,200,160,200,5,NAVY);
+  drawThickLine(145,200,145,215,5,NAVY);
+  drawThickLine(145,215,160,215,5,NAVY);
+  drawThickLine(160,215,160,230,5,NAVY);
+  drawThickLine(145,230,160,230,5,NAVY);
+
+  // print 0
+  drawThickLine(185,200,185,230,5,NAVY);
+  drawThickLine(185,200,200,200,5,NAVY);
+  drawThickLine(185,230,200,230,5,NAVY);
+  drawThickLine(200,200,200,230,5,NAVY);
+
+  // print 1
+  drawThickLine(210,200,210,230,5,NAVY);
+}
+
+
+// -----------------------------------------------------------------------------------------------------
+// Some ASCII art codes for display pages ! 
+
+void scoresPage(int scoreOne,int scoreTwo){
+  clear_screen();
+  clear_char();
+  for(int x=20;x<300;x++){
+    for(int y=20;y<220;y++){
+      write_pixel(x,y,LGRAY);
+    }
+  }
+
+  for(int x=125;x<=185;x++){
+    for(int y=100;y<=140;y++){
+      write_pixel(x,y,BLACK);
+    }
+  }
+
+    // print 1
+  drawThickLine(50,80,50,160,5,NAVY);
+
+    // print ->
+  drawThickLine(60,120,110,120,5,NAVY);
+  drawThickLine(85,110,110,120,5,NAVY);
+  drawThickLine(85,130,110,120,5,NAVY);
+
+    // print 2
+  drawThickLine(250,80,250,160,5,NAVY);
+  drawThickLine(265,80,265,160,5,NAVY);
+
+    // print <-
+  drawThickLine(200,120,240,120,5,NAVY);
+  drawThickLine(220,110,200,120,5,NAVY);
+  drawThickLine(220,130,200,120,5,NAVY);
+  
+
+  char *ch="SCORES";
+  int x=36;
+  while(*ch!='\0'){
+    write_char(x,28,*ch);
+    ch++;
+    x++;
+  }
+
+  convertToStringAndPrint(scoreOne,32,30);
+  convertToStringAndPrint(scoreTwo,42,30);
+}
+
+
+void welcomePage(){
+  clear_char();
+  clear_screen();
+
+  for(int x=0;x<320;x++){
+    for(int y=0;y<30;y++){
+      write_pixel(x,y,LGRAY);
+    }
+  }
+
+    char * ch="\0";
+    char *welcome_art[] = {
+".::    .   .:::.,::::::   :::       .,-:::::      ...      .        :    .,::::::\n",  
+"';;,  ;;  ;;;' ;;;;''''   ;;;     ,;;;'````'   .;;;;;;;.   ;;,.    ;;;   ;;'''' \n", 
+" '[[, [[, [['   [[cccc    [[[     [[[         ,[[     [[[, [[[[, ,[[[[   [[cccc   \n",
+"   Y$c$$$c$P    $$$$$$    $$$     $$$         $$,     $$$  $$$$   $$$$   $$  \n ",
+"     88888      8.....    o88oo,. `88bo,__,o  88,_ _,88P8  Y88    888    88oo___ \n",
+"      MM        YUMMMM     YUMMM    YUMMMMMP     YMMMMMP   MMM    MMMM   YUMMM\n",
+"                                        ",
+"                                         ",
+" ::::::::::::   ...     ",
+" ;;;;;;;;''''.;;;;;;;.  ",
+"     [[    ,[[      [[,",
+"     $$    $$$,     $$$",
+"     88,   888,_ _,88P",
+"     MMM     YMMMMMP ",
+"                                        ",
+"                                         ",
+"  #########   ###########  ######       #########     #       ###            ",
+"     ##           ##       ##              ##       #  #     #           ",
+"     ##           ##       ##              ##      ######   #              ",
+"     ##           ##       ##              ##     #      #   #          ",
+"     ##       ###########  ######          ##    #        #   ###         ",
+"                                        ",
+"                                         ",
+"    #######    # # #    #######   ",
+"      ##     #     #   ##          ",
+"      ##     #     #   #####       ",
+"      ##     #     #   ##          ",
+"      ##       ###     #######     ",
+"                                        ",
+"                                         ",
+" ###      ##    #      #   #     ######   #######  #####  #####",
+" #  #   #    #  #      #   #     #          ##       #    #",
+" ###    #    #  #      #   #     ###        ##       #    ###",
+" ##     #    #   #    #    #     #          ##       #    #",
+" #  #     ##       ##      ####  ######     ##       #    #####",
+"\0" // NULL terminator to indicate end of array
+    };
+
+    int x,y;
+    y=10;
+    char **ptr = welcome_art;
+    while (*ptr != ch) {
+        x=0;
+        char *line = *ptr;
+        while (*line != '\0') {
+            write_char(x,y,*line);
+            // printf("%c",*line);
+            line++;
+            x++;
+        }
+        y++;
+        ptr++;
+    }
+
+  for(int y=190;y<240;y++){
+    for(int x=0;x<320;x++){
+      write_pixel(x,y,LGRAY);
+    }
+  }
+  printRoll();
+  return;
+}
+
+void rulesPage(){
+  clear_screen();
+  clear_char();
+  for(int i=0;i<320;i++){
+    for(int j=0;j<240;j++){
+      write_pixel(i,j,LGRAY);
+    }
+  }
+
+  drawThickLine(5,5,310,5,5,NAVY);
+  drawThickLine(5,230,310,230,5,NAVY);
+  drawThickLine(5,5,5,230,5,NAVY);
+  drawThickLine(310,5,310,230,5,NAVY);
+  // print RULES 
+  
+  // print R
+  drawThickLine(40,25,40,75,5,NAVY);
+  drawThickLine(40,25,55,25,5,NAVY);
+  drawThickLine(40,50,55,50,5,NAVY);
+  drawThickLine(40,50,60,75,5,NAVY);
+  drawThickLine(55,25,55,50,5,NAVY);
+
+  // print U
+  drawThickLine(70,25,70,75,5,NAVY);
+  drawThickLine(70,75,95,75,5,NAVY);
+  drawThickLine(95,25,95,75,5,NAVY);
+
+  // print L 
+  drawThickLine(110,25,110,75,5,NAVY);
+  drawThickLine(110,75,135,75,5,NAVY);
+
+  // print E
+  drawThickLine(150,25,150,75,5,NAVY);  // |
+  drawThickLine(150,25,175,25,5,NAVY);  // upper -
+  drawThickLine(150,50,165,50,5,NAVY);  // middle -
+  drawThickLine(150,75,175,75,5,NAVY);
+
+  // print S
+  drawThickLine(190,25,215,25,5,NAVY);   // upper -
+  drawThickLine(190,25,190,50,5,NAVY);   // |
+  drawThickLine(190,50,215,50,5,NAVY);   // middle -
+  drawThickLine(215,50,215,75,5,NAVY);   // right | 
+  drawThickLine(190,75,215,75,5,NAVY);   // down _ 
+
+  // printing the rules 
+  char *rules[]={
+    "1. Two Players have to play three rounds of Tic Tac Toe",
+    "",
+    "2. The player with the maximum score wins !",
+    "",
+    "3. But .........",
+    "",
+    "4. The players can get higher points by bets",
+    "",
+    "5. And even higher points for Blind ",
+    "",
+    "",
+    "----------------------------------------",
+    "Way --> | Normal | Bet | Blind |",
+    "        |        |     |       |",
+    "Win     |  +1    |  +3 |  +5   |",
+    "        |        |     |       |",
+    "Loss    |  -1    |  -2 |  -3   |",
+    "        |        |     |       |",
+    "Draw    |   0    |  -1 |  -2   | ",
+    "                                  ",
+    "More Risk More Reward",
+    "\0"
+  };
+
+  char * ch="\0";
+      int x,y;
+    y=30;
+    char **ptr = rules;
+    while (*ptr != ch) {
+        x=10;
+        char *line = *ptr;
+        while (*line != '\0') {
+            write_char(x,y,*line);
+            // printf("%c",*line);
+            line++;
+            x++;
+        }
+        y++;
+        ptr++;
+    }
+}
+
+
+
+void movementRulesBox(){
+  for(int x=190;x<=310;x++){
+    for(int y=5;y<=185;y++){
+      write_pixel(x,y,LGRAY);
+    }
+  }
+  print01fn();
+  print10fn();
+  print11fn();
+}
+
+void print01fn(){
+  // print 0
+  drawThickLine(200,7,222,7,5,NAVY);  // upper -
+  drawThickLine(200,7,200,37,5,NAVY);   
+  drawThickLine(200,37,222,37,5,NAVY);
+  drawThickLine(222,7,222,37,5,NAVY);
+
+  // print 1
+  drawThickLine(230,7,230,37,5,NAVY);
+
+
+  // print ->
+  drawThickLine(245,20,290,20,5,NAVY);
+  drawThickLine(270,7,290,20,5,NAVY);
+  drawThickLine(270,37,290,20,5,NAVY);
+}
+
+
+void print10fn(){
+
+  // print 1
+  drawThickLine(200,45,200,75,5,NAVY);
+
+  // print 0
+  drawThickLine(215,45,230,45,5,NAVY);  // upper -
+  drawThickLine(215,45,215,75,5,NAVY);   
+  drawThickLine(215,75,230,75,5,NAVY);
+  drawThickLine(230,45,230,75,5,NAVY);
+
+ // print |
+  //       \/
+  drawThickLine(260,45,260,75,5,NAVY);
+  drawThickLine(240,60,260,75,5,NAVY);
+  drawThickLine(280,60,260,75,5,NAVY);
+}
+
+void print11fn(){
+      // print 1
+  drawThickLine(200,90,200,130,5,NAVY);
+    // print 1
+  drawThickLine(220,90,220,130,5,NAVY);
+
+  // print tick 
+  drawThickLine(240,110,260,130,5,NAVY);
+  drawThickLine(260,130,300,90,5,NAVY);
+}
+
+int abs(int x){
+  if(x>=0) return x;
+  x-=(2*x);
+  return x;
 }
