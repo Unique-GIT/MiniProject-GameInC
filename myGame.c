@@ -6,8 +6,16 @@ Roll Number - 2201CS01
 Course Number - CS210
 Course Name - Architecture Lab
 Course Instructor - Dr. Jimson Mathew 
+Batch - 2022
 
 
+All the parts of this project has been made by Aakash Shankar, 2201CS01 , from scratch . 
+A few of the algorithms and inspirations taken are as follows: 
+1) Bresman's algorithm for drawing : 
+              i) a line 
+              ii) a thick line
+              iii) a circle
+Rest all the functions are coded from scratch 
 **/
 
 #define SW_BASE               0xFF200040
